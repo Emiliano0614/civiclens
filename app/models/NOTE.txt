@@ -1,0 +1,1 @@
+modles are like db tables from js and sql 
