@@ -1,0 +1,5 @@
+Routes handle the HTTP request and response. When someone hits an 
+endpoint like POST /hearings/1/summarize, the route receives that 
+request, calls the service function, and sends the response back.
+. The route doesn't know or care about Groq — it just says "hey 
+service, do the work" and then returns whatever comes back.
