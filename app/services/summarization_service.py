@@ -2,7 +2,7 @@ import json
 import os
 from groq import Groq
 from dotenv import load_dotenv
-
+from app.models.hearing_summary import Hearingsummary
 load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -64,3 +64,27 @@ def summarize_hearing(hearing) -> dict:
      raise ValueError(f"summarize_hearing: response missing keys {missing}: {raw!r}")
     #is a dict comprehension that picks only those 4 keys out of the parsed JSON.
     return {k: result[k] for k in required}
+    #this function is used to extract the gov decision from the transcript
+def extract_decision(hearing) -> str:
+    parts = [f"title:{hearing.title}",f"date:{hearing.date}"]
+     
+    if hearing.transcript:
+        parts.append(f"Transcript:\n{hearing.transcript[:15000]}")
+    hearing_sum= Hearingsummary.query.filter_by(hearing_id=hearing.id).first()
+    if hearing_sum:
+        parts.append(f"Issue: {hearing_sum.issue_description}")
+        parts.append(f"Key Arguments: {hearing_sum.key_arguments}")
+        parts.append(f"Community Impact: {hearing_sum.community_impact}")
+    user_content = "\n\n".join(parts)
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role":"system",
+                "content": """You are a civic-affairs analyst. Based on the hearing title, date, and any available summary, write exactly 2 sentences describing what the government likely decided or what the outcome of this hearing was.
+                No markdown, no JSON, no extra text."""
+            },
+            {"role":"user", "content":user_content}
+        ],
+         )
+    return response.choices[0].message.content.strip()
