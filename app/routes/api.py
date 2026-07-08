@@ -16,6 +16,8 @@ from app.services.comment_service import get_comment
 from app.services.summary_orchestrator import run_summary
 from app.services.cluster_orchestrator import run_clustering
 from app.models.comment_cluster import CommentCluster
+from app.services.government_decision_service import create_or_update_decision
+from app.services.government_decision_service import get_decision
 
 #"api" is the name flask uses to identify this blueprint
 #name tells flask ehere the blue print lives so it can resolve the
@@ -100,3 +102,27 @@ def get_clusters(hearing_id):
         return jsonify({"error": "Hearing not found"}), 404
     clusters = CommentCluster.query.filter_by(hearing_id=hearing_id).all()
     return jsonify([c.to_dict() for c in clusters]), 200
+
+@api_bp.route('/hearings/<int:hearing_id>/decision', methods=["POST"])
+def post_decision(hearing_id):
+    data = request.get_json()
+    decision_text = data.get("decision_text")
+    raw_date = data.get("decision_date")
+    if raw_date is not None:
+        parsed_date = date.fromisoformat(raw_date)
+    else:
+        parsed_date = None  
+    if decision_text is None:
+        return jsonify({"error": "decision_text is required"}), 400
+    try:  
+        decision = create_or_update_decision(hearing_id, decision_text, parsed_date)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    return jsonify(decision.to_dict()), 201
+
+@api_bp.route('/hearings/<int:hearing_id>/decision', methods=["GET"])
+def get_decisions(hearing_id):
+    decision = get_decision(hearing_id)
+    if decision is None:
+        return jsonify({"error": "Decision not found"}), 404
+    return jsonify(decision.to_dict()), 200
