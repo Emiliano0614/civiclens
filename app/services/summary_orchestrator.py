@@ -22,3 +22,6 @@ def run_summary(hearing_id):
 
     db.session.commit()
     return summary
+def get_summary(hearing_id):
+    summary = Hearingsummary.query.filter_by(hearing_id=hearing_id).first()
+    return summary

@@ -53,3 +53,7 @@ def run_clustering(hearing_id):
     except Exception:
         db.session.rollback()
         raise
+
+def get_cluster(hearing_id):
+    cluster = CommentCluster.query.filter_by(hearing_id=hearing_id).all()
+    return cluster

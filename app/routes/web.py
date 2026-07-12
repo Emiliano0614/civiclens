@@ -25,7 +25,8 @@ def login():
         # re-renders the same login page, but passes an error message into the template
         return render_template("auth/login.html", error="Invalid email or password.")
     session["user_id"] = user.id
-    return redirect(url_for("web.list_hearings"))
+    #for testing purposes redirect to / 
+    return redirect("/")
 
 @web_bp.route("/signup", methods=["GET","POST"])
 def signup():
@@ -42,9 +43,11 @@ def signup():
     except ValueError:
         return render_template("auth/signup.html", error="An account with that email already exists.")
     session["user_id"] = user.id
-    return redirect(url_for("web.list_hearings"))
+    #for testing purposes redirect to / 
+    return redirect("/")
 
 @web_bp.route("/logout")
 def logout():
     session.pop("user_id", None)
-    return redirect(url_for("web.list_hearings"))
+     #for testing purposes redirect to / 
+    return redirect("/")

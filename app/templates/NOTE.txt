@@ -1,0 +1,2 @@
+all the HTML files, and Flask just filled them in with data and 
+served them.

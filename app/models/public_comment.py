@@ -11,6 +11,7 @@ class PublicComment(db.Model):
     #"hearings.id" is just telling SQLAlchemy the table name. It looks it up in the database directly
     hearing_id = db.Column(db.Integer, db.ForeignKey("hearings.id"),nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"),nullable=False)
     #each comment is eventualy going to be link to a cluster
     #its not in a cluster when there is only 2 or less comments in that hearing
     #or when the user clicks re cluster
@@ -23,5 +24,6 @@ class PublicComment(db.Model):
             "body": self.body,
             "created_at": self.created_at.isoformat(),
             "hearing_id": self.hearing_id,
-            "cluster_id": self.cluster_id
+            "cluster_id": self.cluster_id,
+            "author_id": self.author_id
         }
