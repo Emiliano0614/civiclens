@@ -4,12 +4,33 @@
 #app.register_blueprint(api_bp, url_prefix="/api")
 # blue print is like a mini  app that groups routes toghther 
 #A Blueprint actually holds the routes
+from datetime import date as date_type
+from app.services.hearing_service import (
+    list_hearings,
+    create_hearing,
+    get_hearing_by_id,
+)
+from app.auth import login_required, admin_required
+from app.services.comment_service import create_comment
 from flask import Blueprint, render_template, request, redirect, url_for, session
 from app.services.auth_service import verify_login, create_user
+from app.models.hearing import Hearing
+from app.models.public_comment import PublicComment
+from app.models.comment_cluster import CommentCluster
 #"web" is the name flask uses to identify this blueprint
 #name tells flask ehere the blue print lives so it can resolve the
 #paths
+
 web_bp = Blueprint("web",__name__)
+#route just displays a page
+@web_bp.route("/hearings", methods=["GET"])
+def list_hearing():
+    hearings = list_hearings()
+    return render_template("hearings/list.html", hearings=hearings)
+
+
+
+
 
 @web_bp.route("/login", methods=["GET","POST"])
 def login():

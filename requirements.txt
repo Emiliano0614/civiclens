@@ -4,3 +4,4 @@ python-dotenv
 groq
 youtube-transcript-api
 requests
+click
