@@ -13,8 +13,7 @@ from app.models.public_comment import PublicComment
 from app.services.hearing_service import list_hearings
 from app.services.hearing_service import create_hearing
 from app.services.hearing_service import get_hearing_by_id
-from app.services.comment_service import create_comment
-from app.services.comment_service import get_comment
+from app.services.comment_service import create_comment, get_comment, delete_comment
 from app.services.summary_orchestrator import run_summary
 from app.services.cluster_orchestrator import run_clustering, get_cluster
 from app.models.comment_cluster import CommentCluster
@@ -87,15 +86,18 @@ def get_comments(hearing_id):
 # as a admin not the author
 @api_bp.route('/hearings/<int:hearing_id>/comments/<int:comment_id>',methods=["DELETE"])
 @login_required
-def delete_comment(hearing_id, comment_id):
-    comment = PublicComment.query.get(comment_id)
-    if comment is None:
-        return jsonify({"error": "comment not found"}),404
+def delete_comments(comment_id):
     current_user = get_current_user()
-    if comment.author_id != current_user.id and not current_user.is_admin:
-        return jsonify({"error": "You do not have permission to delete this comment"}),403
-    db.session.delete(comment)
-    db.session.commit()
+    current_user_id = current_user.id
+    is_admin = current_user.is_admin
+
+    try:
+        delete_comment(comment_id, current_user_id, is_admin)
+    except ValueError as e:
+        if str(e) == "comment not found":
+            return jsonify({"error": "comment not found"}),404
+        elif str(e) == "You do not have permission to delete this comment":
+            return jsonify({"error": "You do not have permission to delete this comment"}),403
     return jsonify({"message": "comment deleted"}),200
 
 @api_bp.route('/hearings/<int:hearing_id>/summarize',methods=["POST"])

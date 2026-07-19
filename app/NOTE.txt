@@ -1,0 +1,3 @@
+Flask serves both the backend logic and the HTML templates from 
+the same project — no separate frontend server needed
+THE html files dont have logic it just gets filled by data
