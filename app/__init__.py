@@ -25,6 +25,8 @@ def create_app(config):
     from app.models.hearing_summary import Hearingsummary # noqa: F401
     from app.models.government_decision import GovernmentDecision # noqa: F401
     from app.models.comment_cluster import CommentCluster # noqa: F401
+    from app.models.accountability_summary import AccountabilitySummary # noqa: F401
+    from app.models.user import User # noqa: F401
     from app.routes.api import api_bp
     from app.routes.web import web_bp
     #Notice api_bp gets a url_prefix of /api so all API routes 
@@ -33,5 +35,3 @@ def create_app(config):
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
     return app
-
-

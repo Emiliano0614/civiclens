@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CivicLens{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav>
+  <div class="flag-bar">
+    <div class="flag-item">
+      <span class="flag-emoji"></span>
+      <span>United States of America</span>
+    </div>
+    <div class="flag-item">
+      <span class="flag-emoji">⭐</span>
+      <span>Hidalgo County</span>
+    </div>
+    <div class="flag-item">
+      <span>State of Texas</span>
+      <span class="flag-emoji"></span>
+    </div>
+  </div>
+  <div class="nav-inner">
+    <a class="nav-brand" href="{{ url_for('web.index') }}">
+      <div class="nav-logo-icon">CL</div>
+      CivicLens
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('web.index') }}">Home</a>
+      <a href="{{ url_for('web.list_hearing') }}">Hearings</a>
+      <a href="{{ url_for('web.about') }}">About Us</a>
+      {% if current_user %}
+      <span class="nav-user">{{ current_user.name }}{% if current_user.is_admin %} <span class="nav-role-badge">admin</span>{% endif %}</span>
+      <a href="{{ url_for('web.logout') }}" class="nav-login">Logout</a>
+      {% else %}
+      <a href="{{ url_for('web.login') }}" class="nav-login">Login</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="gold-line"></div>
+</nav>
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

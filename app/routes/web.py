@@ -21,6 +21,7 @@ from app.services.cluster_orchestrator import get_cluster
 from app.services.accountability_orchestrator import get_accountability_summary
 from app.services.government_decision_service import get_decision
 from app.services.summary_orchestrator import get_summary
+from app.services.user_service import get_users_by_ids
 #"web" is the name flask uses to identify this blueprint
 #name tells flask ehere the blue print lives so it can resolve the
 #paths
@@ -40,6 +41,8 @@ def about():
 @web_bp.route("/hearings", methods=["GET"])
 def list_hearing():
     hearings = list_hearings()
+    for hearing in hearings:
+        hearing.summary = get_summary(hearing.id)
     return render_template("hearings/list.html", hearings=hearings)
 
 
@@ -49,10 +52,14 @@ def hearing_detail(hearing_id):
     if hearing is None:
         abort(404)
     comments = get_comment(hearing_id)
+    author_ids = [c.author_id for c in comments]
+    users = get_users_by_ids(author_ids)
+    user_index = {u.id: u for u in users}
     comments_data = [c.to_dict() for c in comments]
     clusters = get_cluster(hearing_id)
     clusters_data = [c.to_dict(include_comments=True) for c in clusters]
     summary = get_summary(hearing_id)
+
     decision =  get_decision(hearing_id)
     accountability = get_accountability_summary(hearing_id)
     return render_template(
@@ -66,6 +73,7 @@ def hearing_detail(hearing_id):
         comment_error=None,
         decision=decision,
         accountability=accountability,
+        user_index = user_index
     )
 
 @web_bp.route("/hearings/<int:hearing_id>/comments", methods=["POST"])
@@ -77,6 +85,9 @@ def submit_comment(hearing_id):
     body = request.form.get("body", "").strip()    
     if not body:
         comments = get_comment(hearing_id)
+        author_ids = [c.author_id for c in comments]
+        users = get_users_by_ids(author_ids)
+        user_index = {u.id: u for u in users}
         comments_data = [c.to_dict() for c in comments]
         clusters = get_cluster(hearing_id)
         clusters_data = [c.to_dict(include_comments=True) for c in clusters]
@@ -94,6 +105,7 @@ def submit_comment(hearing_id):
             comment_error="Comment cannot be empty.",
             decision=decision,
             accountability=accountability,
+            user_index = user_index
         )
     author_id = session.get("user_id")
     create_comment(body, hearing_id, author_id)
