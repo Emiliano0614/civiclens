@@ -737,3 +737,18 @@ td a { color: #1a3a5c; }
 }
 
 .btn-delete-comment:hover { opacity: 1; background: rgba(185,28,28,0.08); }
+
+
+.transcript-collapsed {
+  max-height: 220px;
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+
+.transcript-expanded {
+  max-height: none;
+  mask-image: none;
+  -webkit-mask-image: none;
+}

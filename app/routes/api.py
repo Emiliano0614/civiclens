@@ -37,22 +37,23 @@ def get_hearings():
     #so jsonify can turn it into JSON.
     return jsonify([h.to_dict() for h in hearings])
 
-@api_bp.route("/hearings",methods=["POST"])
-@admin_required# only admins can create hearings
+@api_bp.route("/hearings", methods=["POST"])
+@admin_required
 def create_hearings():
     data = request.get_json()
     title = data.get("title")
     raw_date = data.get("date")
     if title == None or raw_date == None:
-        return jsonify({
-            "error":"title and date are required"
-        }),400
-    parsed_date  = date.fromisoformat(raw_date)
+        return jsonify({"error": "title and date are required"}), 400
+    try:
+        parsed_date = date.fromisoformat(raw_date)
+    except ValueError:
+        return jsonify({"error": "Invalid date format."}), 400
     transcript = data.get("transcript")
     agenda = data.get("agenda")
-    youtube_video_id  = data.get("youtube_video_id")
-    hearing = create_hearing(title,parsed_date,transcript,agenda,youtube_video_id )
-    return jsonify(hearing.to_dict()),201
+    youtube_video_id = data.get("youtube_video_id")
+    hearing = create_hearing(title, parsed_date, transcript, agenda, youtube_video_id)
+    return jsonify(hearing.to_dict()), 201
 
 @api_bp.route('/hearings/<int:id>',methods=["GET"])
 def get_hearings_by_id(id):
@@ -86,7 +87,7 @@ def get_comments(hearing_id):
 # as a admin not the author
 @api_bp.route('/hearings/<int:hearing_id>/comments/<int:comment_id>',methods=["DELETE"])
 @login_required
-def delete_comments(comment_id):
+def delete_comments(hearing_id,comment_id):
     current_user = get_current_user()
     current_user_id = current_user.id
     is_admin = current_user.is_admin
@@ -136,12 +137,15 @@ def post_decision(hearing_id):
     decision_text = data.get("decision_text")
     raw_date = data.get("decision_date")
     if raw_date is not None:
-        parsed_date = date.fromisoformat(raw_date)
+        try:
+            parsed_date = date.fromisoformat(raw_date)
+        except ValueError:
+            return jsonify({"error": "Invalid date format."}), 400
     else:
-        parsed_date = None  
+        parsed_date = None
     if decision_text is None:
         return jsonify({"error": "decision_text is required"}), 400
-    try:  
+    try:
         decision = create_or_update_decision(hearing_id, decision_text, parsed_date)
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
@@ -165,6 +169,7 @@ def extract_decision_route(hearing_id):
     return jsonify(save_decision.to_dict()),200
 
 @api_bp.route("/hearings/<int:hearing_id>/accountability", methods=["POST"])
+@login_required
 def run_accountability_route(hearing_id):
     try:
         summary_row = run_accountability(hearing_id)

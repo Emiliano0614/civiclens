@@ -24,7 +24,7 @@
   <div class="auth-card">
     <div class="gold-bar"></div>
     <div class="card-eyebrow">Welcome Back</div>
-    <h1>Sign in to CivicLens</h1>
+    <h1>Login to CivicLens</h1>
     <p class="auth-subtitle">Your civic voice awaits</p>
 
     {% if error %}
@@ -44,7 +44,7 @@
     </form>
 
     <div class="divider">or</div>
-    <a href="{{ url_for('web.list_hearings') }}" class="btn-guest">Continue as Guest</a>
+    <a href="{{ url_for('web.list_hearing') }}" class="btn-guest">Continue as Guest</a>
     <p class="auth-footer">Don't have an account? <a href="{{ url_for('web.signup') }}">Sign up</a></p>
   </div>
 </div>

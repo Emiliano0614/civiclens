@@ -28,6 +28,10 @@ from app.services.user_service import get_users_by_ids
 
 web_bp = Blueprint("web",__name__)
 
+@web_bp.context_processor
+def inject_current_user():
+    return {"current_user": get_current_user()}
+
 @web_bp.route("/")
 def index():
      return render_template("home.html")
@@ -57,7 +61,7 @@ def hearing_detail(hearing_id):
     user_index = {u.id: u for u in users}
     comments_data = [c.to_dict() for c in comments]
     clusters = get_cluster(hearing_id)
-    clusters_data = [c.to_dict(include_comments=True) for c in clusters]
+    clusters_data = [c.to_dict() for c in clusters]
     summary = get_summary(hearing_id)
 
     decision =  get_decision(hearing_id)
@@ -90,7 +94,7 @@ def submit_comment(hearing_id):
         user_index = {u.id: u for u in users}
         comments_data = [c.to_dict() for c in comments]
         clusters = get_cluster(hearing_id)
-        clusters_data = [c.to_dict(include_comments=True) for c in clusters]
+        clusters_data = [c.to_dict() for c in clusters]
         summary = get_summary(hearing_id)
         decision =  get_decision(hearing_id)
         accountability = get_accountability_summary(hearing_id)

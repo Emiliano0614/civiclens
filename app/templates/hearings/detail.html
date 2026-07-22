@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+{% block title %}{{ hearing.title }} — CivicLens{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{{ url_for('web.list_hearing') }}">&larr; All Hearings</a>
+<div class="detail-header">
+  <div class="detail-eyebrow">Hidalgo County · Public Hearing</div>
+  <h1 class="detail-title">{{ hearing.title }}</h1>
+  <p class="detail-date">{{ hearing.date }}</p>
+</div>
+<div class="detail-gold-bar"></div>
+
+<section class="summary-section">
+  <div class="summary-header">
+    <h2>Summary</h2>
+    <button class="btn btn-sm" onclick="resummarize({{ hearing.id }}, this)">Re-summarize</button>
+  </div>
+  {% if summary %}
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-card-label">Issue</div>
+      <div class="summary-card-body">{{ summary.issue_description }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Stakeholders</div>
+      <div class="summary-card-body">{{ summary.stakeholders }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Key Arguments</div>
+      <div class="summary-card-body">{{ summary.key_arguments }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Community Impact</div>
+      <div class="summary-card-body">{{ summary.community_impact }}</div>
+    </div>
+  </div>
+  {% else %}
+  <p class="empty-state summary-pending">Summary pending...</p>
+  {% endif %}
+</section>
+
+{% if hearing.agenda %}
+<hr class="section-divider">
+<section>
+  <h2>Agenda</h2>
+  <pre class="content-block">{{ hearing.agenda }}</pre>
+</section>
+{% endif %}
+
+{% if hearing.transcript %}
+<hr class="section-divider">
+<section>
+  <h2>Transcript</h2>
+  <pre class="content-block transcript-collapsed" id="transcript-block">{{ hearing.transcript }}</pre>
+  <button class="show-more-btn" id="transcript-toggle" onclick="toggleTranscript()">View more</button>
+</section>
+{% endif %}
+
+{% if not hearing.agenda and not hearing.transcript %}
+<p class="empty-state">No agenda or transcript available for this hearing.</p>
+{% endif %}
+
+<hr class="section-divider">
+
+<section class="comments-section">
+  <div class="comments-header">
+    <h2>Public Comments</h2>
+  </div>
+  {% if current_user %}
+  <form class="comment-form" method="POST" action="{{ url_for('web.submit_comment', hearing_id=hearing.id) }}">
+    <label for="comment-body">Add your comment</label>
+    {% if comment_error %}
+    <p class="comment-error">{{ comment_error }}</p>
+    {% endif %}
+    <textarea id="comment-body" name="body" rows="4" placeholder="Share your thoughts on this hearing…"></textarea>
+    <button type="submit" class="btn">Submit</button>
+  </form>
+  {% else %}
+  <p class="empty-state"><a href="{{ url_for('web.login') }}">Log in</a> to leave a comment.</p>
+  {% endif %}
+
+  {% if comments %}
+  <ul class="comment-list">
+    {% for c in comments %}
+    <li class="comment-item{% if loop.index > 3 %} comment-hidden{% endif %}">
+       {% set author = user_index.get(c.author_id) %}
+       <span class="comment-author">{{ author.name if author else "Unknown user" }}</span>
+      <p class="comment-body">{{ c.body }}</p>
+      <div class="comment-footer">
+        <span class="comment-meta">{{ c.created_at.strftime('%b %d, %Y') }}</span>
+        {% if current_user and (current_user.id == c.author_id or current_user.is_admin) %}
+        <form method="POST" action="{{ url_for('web.delete_comment_route', hearing_id=hearing.id, comment_id=c.id) }}" style="display:inline">
+          <button type="submit" class="btn-delete-comment">Delete</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if comments|length > 3 %}
+  <button class="show-more-btn" id="show-more-btn" onclick="showMoreComments()">
+    Show {{ comments|length - 3 }} more comment{{ 's' if comments|length - 3 != 1 else '' }}
+  </button>
+  {% endif %}
+  {% else %}
+  <p class="empty-state">No comments yet — be the first.</p>
+  {% endif %}
+</section>
+
+<hr class="section-divider">
+
+<section class="clusters-section">
+  <div class="clusters-header">
+    <h2>Comment Clusters</h2>
+    <button class="btn btn-sm" onclick="runClustering({{ hearing.id }}, this)">Cluster Comments</button>
+  </div>
+  {% if clusters %}
+  <div class="cy-wrapper">
+    <div id="cy" class="cy-container"></div>
+    <div id="cluster-panel" class="cluster-panel">
+      <div class="cluster-panel-header">
+        <span id="panel-name" class="cluster-panel-name"></span>
+        <button class="cluster-panel-close" id="panel-close">×</button>
+      </div>
+      <p id="panel-description" class="cluster-panel-description"></p>
+      <hr class="cluster-panel-divider">
+      <ul id="panel-comments" class="cluster-panel-comments"></ul>
+    </div>
+  </div>
+  {% else %}
+  <p class="empty-state">No clusters yet — submit at least 2 comments and click Cluster Comments.</p>
+  {% endif %}
+</section>
+
+<div id="cy-tooltip" class="cy-tooltip" style="display:none"></div>
+
+<section class="dark-panel">
+  <div class="clusters-header">
+    <h2>Government Decision</h2>
+    {% if current_user and current_user.is_admin %}
+    <button class="btn btn-sm" onclick="extractDecision({{ hearing.id }}, this)">Extract from Transcript</button>
+    {% endif %}
+  </div>
+  <div id="decision-result">
+    {% if decision %}
+    <p id="decision-text-display">{{ decision.decision_text }}</p>
+    {% else %}
+    <p id="decision-text-display" class="empty-state">No decision recorded</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="dark-panel">
+  <div class="accountability-header">
+    <h2>Accountability</h2>
+    {% if current_user and decision and clusters %}
+    <button class="btn btn-sm" id="run-accountability-btn" onclick="runAccountability({{ hearing.id }}, this)">Run Accountability Analysis</button>
+    {% endif %}
+  </div>
+  <div id="accountability-result">
+    {% if accountability %}
+    <div class="alignment-badge alignment-{{ accountability.alignment }}">{{ accountability.alignment | upper }}</div>
+    <p class="accountability-reasoning">{{ accountability.reasoning }}</p>
+    {% else %}
+    <p class="empty-state">No analysis yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% if clusters %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+<script>
+(function() {
+  var CLUSTER_DATA = {{ clusters_data | tojson }};
+  var COMMENTS_DATA = {{ comments_data | tojson }};
+
+  // give every cluster an empty comments array to fill in
+  CLUSTER_DATA.forEach(function(cl) { cl.comments = []; });
+
+  // build a lookup: cluster id -> cluster object
+  var clusterMap = {};
+  CLUSTER_DATA.forEach(function(cl) { clusterMap[cl.id] = cl; });
+
+  // file each comment into its parent cluster's .comments array
+  COMMENTS_DATA.forEach(function(c) {
+    if (c.cluster_id && clusterMap[c.cluster_id]) {
+      clusterMap[c.cluster_id].comments.push(c);
+    }
+  });
+
+  var clusterColors = ['#1a6fc4','#2e9c5a','#c4781a','#8e44ad','#c0392b','#16a085','#d35400','#2980b9'];
+  var elements = [];
+
+  CLUSTER_DATA.forEach(function(cl, i) {
+    elements.push({
+      data: { id: 'c' + cl.id, label: cl.name, description: cl.description, comments: cl.comments, type: 'cluster', color: clusterColors[i % clusterColors.length], comment_count: cl.comment_count || 1 }
+    });
+    cl.comments.forEach(function(comment) {
+      elements.push({
+        data: { id: 'cm' + comment.id, label: '', type: 'comment', body: comment.body, parent_cluster: 'c' + cl.id }
+      });
+      elements.push({
+        data: { source: 'c' + cl.id, target: 'cm' + comment.id }
+      });
+    });
+  });
+
+  var cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: elements,
+    style: [
+      {
+        selector: 'node[type="cluster"]',
+        style: {
+          'background-color': 'data(color)',
+          'background-opacity': 0.8,
+          'label': 'data(label)',
+          'width': 'mapData(comment_count, 1, 20, 40, 120)',
+          'height': 'mapData(comment_count, 1, 20, 40, 120)',
+          'font-size': 12,
+          'color': '#fff',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'text-wrap': 'wrap',
+          'text-max-width': 'mapData(comment_count, 1, 20, 36, 110)',
+          'font-weight': 'bold',
+          'shadow-blur': 18,
+          'shadow-color': 'data(color)',
+          'shadow-opacity': 0.7,
+          'shadow-offset-x': 0,
+          'shadow-offset-y': 0
+        }
+      },
+      {
+        selector: 'node[type="comment"]',
+        style: {
+          'background-color': '#4a4a5a',
+          'width': 16,
+          'height': 16,
+          'label': ''
+        }
+      },
+      {
+        selector: 'edge',
+        style: {
+          'width': 1,
+          'line-color': '#2a2a3a',
+          'curve-style': 'haystack'
+        }
+      },
+      {
+        selector: 'node.dimmed, edge.dimmed',
+        style: { 'opacity': 0.15 }
+      },
+      {
+        selector: 'node[type="cluster"].highlighted',
+        style: {
+          'shadow-blur': 32,
+          'background-opacity': 1
+        }
+      },
+      {
+        selector: 'node[type="cluster"].selected',
+        style: {
+          'border-width': 3,
+          'border-color': '#fff',
+          'border-opacity': 0.9
+        }
+      }
+    ],
+    layout: {
+      name: 'cose',
+      animate: true,
+      animationDuration: 600,
+      nodeRepulsion: 12000,
+      idealEdgeLength: 100,
+      gravity: 0.25,
+      fit: true,
+      padding: 40
+    }
+  });
+
+  var tooltip = document.getElementById('cy-tooltip');
+
+  cy.on('mouseover', 'node[type="comment"]', function(evt) {
+    var node = evt.target;
+    tooltip.textContent = node.data('body');
+    tooltip.style.display = 'block';
+  });
+
+  cy.on('mousemove', function(evt) {
+    if (tooltip.style.display === 'block') {
+      tooltip.style.left = (evt.originalEvent.pageX + 12) + 'px';
+      tooltip.style.top = (evt.originalEvent.pageY + 12) + 'px';
+    }
+  });
+
+  cy.on('mouseout', 'node[type="comment"]', function() {
+    tooltip.style.display = 'none';
+  });
+
+  cy.on('mouseover', 'node[type="cluster"]', function(evt) {
+    var node = evt.target;
+    cy.container().style.cursor = 'pointer';
+    cy.batch(function() {
+      cy.elements().addClass('dimmed');
+      node.closedNeighborhood().removeClass('dimmed');
+      node.addClass('highlighted');
+    });
+  });
+
+  cy.on('mouseout', 'node[type="cluster"]', function() {
+    cy.container().style.cursor = 'default';
+    cy.batch(function() {
+      cy.elements().removeClass('dimmed').removeClass('highlighted');
+    });
+  });
+
+  window.addEventListener('resize', function() {
+    cy.resize();
+    cy.fit();
+  });
+
+  var panel = document.getElementById('cluster-panel');
+  var panelName = document.getElementById('panel-name');
+  var panelDesc = document.getElementById('panel-description');
+  var panelComments = document.getElementById('panel-comments');
+  var selectedNode = null;
+
+  function openPanel(node) {
+    panelName.textContent = node.data('label');
+    panelDesc.textContent = node.data('description') || '';
+    var comments = node.data('comments') || [];
+    panelComments.innerHTML = '';
+    comments.forEach(function(c) {
+      var li = document.createElement('li');
+      li.textContent = c.body;
+      panelComments.appendChild(li);
+    });
+    if (selectedNode) selectedNode.removeClass('selected');
+    selectedNode = node;
+    node.addClass('selected');
+    panel.classList.add('cluster-panel--open');
+    cy.animate({ fit: { eles: node, padding: 80 } }, { duration: 400 });
+  }
+
+  function closePanel() {
+    panel.classList.remove('cluster-panel--open');
+    if (selectedNode) {
+      selectedNode.removeClass('selected');
+      selectedNode = null;
+    }
+  }
+
+  cy.on('tap', 'node[type="cluster"]', function(evt) { openPanel(evt.target); });
+  cy.on('tap', 'node[type="comment"]', function(evt) { evt.stopPropagation(); });
+  cy.on('tap', function(evt) { if (evt.target === cy) closePanel(); });
+
+  document.getElementById('panel-close').addEventListener('click', closePanel);
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePanel(); });
+})();
+</script>
+{% endif %}
+
+<script>
+function showMoreComments() {
+  document.querySelectorAll('.comment-hidden').forEach(function(el) {
+    el.classList.remove('comment-hidden');
+  });
+  document.getElementById('show-more-btn').style.display = 'none';
+}
+
+
+function toggleTranscript() {
+  var block = document.getElementById('transcript-block');
+  var btn = document.getElementById('transcript-toggle');
+  var collapsed = block.classList.toggle('transcript-collapsed');
+  block.classList.toggle('transcript-expanded', !collapsed);
+  btn.textContent = collapsed ? 'View more' : 'Show less';
+}
+
+function resummarize(hearingId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+  fetch('/api/hearings/' + hearingId + '/summarize', { method: 'POST' })
+    .then(function(r) { location.reload(); })
+    .catch(function() { btn.disabled = false; btn.textContent = 'Re-summarize'; });
+}
+
+function extractDecision(hearingId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Extracting…';
+  fetch('/api/hearings/' + hearingId + '/extract-decision', { method: 'POST' })
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Failed'); });
+      return r.json();
+    })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = 'Extract from Transcript';
+      document.getElementById('decision-text-display').textContent = data.decision_text;
+      document.getElementById('decision-text-display').classList.remove('empty-state');
+      var runBtn = document.getElementById('run-accountability-btn');
+      if (!runBtn) {
+        var header = document.querySelector('.accountability-header');
+        var newBtn = document.createElement('button');
+        newBtn.className = 'btn btn-sm';
+        newBtn.id = 'run-accountability-btn';
+        newBtn.textContent = 'Run Accountability Analysis';
+        newBtn.onclick = function() { runAccountability(hearingId, newBtn); };
+        header.appendChild(newBtn);
+        var emptyState = document.querySelector('#accountability-result .empty-state');
+        if (emptyState) emptyState.textContent = 'No analysis yet — click Run Accountability Analysis.';
+      }
+    })
+    .catch(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Extract from Transcript';
+      alert(err.message);
+    });
+}
+
+function runAccountability(hearingId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Analyzing…';
+  fetch('/api/hearings/' + hearingId + '/accountability', { method: 'POST' })
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Analysis failed'); });
+      return r.json();
+    })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = 'Run Accountability Analysis';
+      var result = document.getElementById('accountability-result');
+      result.innerHTML = '<div class="alignment-badge alignment-' + data.alignment + '">' + data.alignment.toUpperCase() + '</div><p class="accountability-reasoning">' + data.reasoning + '</p>';
+    })
+    .catch(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Run Accountability Analysis';
+      alert(err.message);
+    });
+}
+
+function runClustering(hearingId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Clustering…';
+  fetch('/api/hearings/' + hearingId + '/cluster', { method: 'POST' })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(d) { throw new Error(d.error || 'Clustering failed'); });
+      }
+      location.reload();
+    })
+    .catch(function(e) {
+      btn.disabled = false;
+      btn.textContent = 'Cluster Comments';
+      alert(e.message);
+    });
+}
+
+</script>
+{% endblock %}
