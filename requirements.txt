@@ -5,3 +5,5 @@ groq
 youtube-transcript-api
 requests
 click
+gunicorn
+psycopg2-binary
