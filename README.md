@@ -54,11 +54,21 @@ docker compose down
 
 ## Deployment
 
-Not yet deployed. Planned: hosted on Render or Railway with a managed Postgres instance.
+Live on Render: **https://civiclens-e53x.onrender.com**
+
+- Web service: Dockerized Flask app on Render's free tier
+- Database: Render-managed Postgres (free tier)
+
+Note: the free-tier database and web service both expire/spin down under Render's free plan limits (DB after 90 days, web service sleeps after inactivity and wakes on the next request with a short delay). Fine for a portfolio project; would need a paid tier for a permanent, always-on deployment.
+
+## CI/CD
+
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs on every push — installs dependencies, checks all Python files compile, and lints for critical errors (undefined names, syntax issues) via flake8.
+- **CD:** Render auto-deploys on every push to `master`.
 
 ## Status
 
 - [x] Core app (models, routes, auth, YouTube sync, AI summarization)
 - [x] Dockerized with Docker Compose (Flask + Postgres)
-- [ ] Live deployment
-- [ ] CI/CD pipeline
+- [x] Live deployment (Render)
+- [x] CI/CD pipeline (GitHub Actions + Render auto-deploy)
