@@ -19,6 +19,7 @@ def create_app(config):
     #when the app opens initilaize the db
     # "now connect it to this specific Flask app."
     db.init_app(app)
+    
     # This is what tells SQLAlchemy "hey, this table exists."
     from app.models.hearing import Hearing  # noqa: F401
     from app.models.public_comment import PublicComment  # noqa: F401
@@ -27,6 +28,8 @@ def create_app(config):
     from app.models.comment_cluster import CommentCluster # noqa: F401
     from app.models.accountability_summary import AccountabilitySummary # noqa: F401
     from app.models.user import User # noqa: F401
+    with app.app_context():
+        db.create_all()
     from app.routes.api import api_bp
     from app.routes.web import web_bp
     #Notice api_bp gets a url_prefix of /api so all API routes 
