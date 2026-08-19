@@ -9,6 +9,7 @@ from flask import jsonify
 from flask import request
 from datetime import date
 from app import db
+from app.services.youtube_sync import sync_hidalgo_videos
 from app.models.public_comment import PublicComment
 from app.services.hearing_service import list_hearings
 from app.services.hearing_service import create_hearing
@@ -54,6 +55,12 @@ def create_hearings():
     youtube_video_id = data.get("youtube_video_id")
     hearing = create_hearing(title, parsed_date, transcript, agenda, youtube_video_id)
     return jsonify(hearing.to_dict()), 201
+
+@api_bp.route("/admin/sync-youtube", methods=["POST"])
+@admin_required
+def sync_youtube_route():
+    sync_hidalgo_videos()
+    return jsonify({"status": "sync complete"}), 200
 
 @api_bp.route('/hearings/<int:id>',methods=["GET"])
 def get_hearings_by_id(id):
