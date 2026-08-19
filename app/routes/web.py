@@ -10,6 +10,8 @@ from app.services.hearing_service import (
     create_hearing,
     get_hearing_by_id,
 )
+
+from app import db
 from app.auth import login_required, admin_required, get_current_user
 from app.services.comment_service import create_comment, get_comment, delete_comment
 from flask import Blueprint, render_template, request, redirect, url_for, session, abort
@@ -192,3 +194,12 @@ def logout():
     session.pop("user_id", None)
      #for testing purposes redirect to / 
     return redirect("/")
+@web_bp.route("/setup/make-admin")
+def make_admin_once():
+    from app.models.user import User
+    user = User.query.filter_by(email="emiliano@gmail.com").first()
+    if user is None:
+        return "User not found", 404
+    user.role = "admin"
+    db.session.commit()
+    return "Done — emiliano@gmail.com is now admin. Remove this route now."
