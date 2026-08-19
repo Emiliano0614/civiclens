@@ -33,7 +33,7 @@ def summarize_hearing(hearing) -> dict:
     #between each section. That becomes the actual message you send to Groq.
     user_content = "\n\n".join(parts)
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_content},
@@ -77,7 +77,7 @@ def extract_decision(hearing) -> str:
         parts.append(f"Community Impact: {hearing_sum.community_impact}")
     user_content = "\n\n".join(parts)
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {
                 "role":"system",

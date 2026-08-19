@@ -4,7 +4,7 @@ import os
 from groq import Groq
 client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
-ACCOUNTABILITY_MODEL = os.environ.get("ACCOUNTABILITY_MODEL", "llama-3.3-70b-versatile")
+ACCOUNTABILITY_MODEL = os.environ.get("ACCOUNTABILITY_MODEL", "openai/gpt-oss-120b")
 
 VALID_ALIGNMENTS = {"aligned", "partial", "diverged"}
 

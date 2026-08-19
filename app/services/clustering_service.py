@@ -3,7 +3,7 @@ import os
 from groq import Groq
 
 #pulls the model name from .env, falls back to the same model used for summarization
-CLUSTERING_MODEL = os.environ.get("CLUSTERING_MODEL", "llama-3.3-70b-versatile")
+CLUSTERING_MODEL = os.environ.get("CLUSTERING_MODEL", "openai/gpt-oss-120b")
 #created once at the top of the file, not inside the function, so we're not 
 #reconnecting to Groq every single time cluster_comments() runs
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
